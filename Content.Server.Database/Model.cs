@@ -49,6 +49,21 @@ namespace Content.Server.Database
         public DbSet<AdminMessage> AdminMessages { get; set; } = null!;
         public DbSet<RoleWhitelist> RoleWhitelists { get; set; } = null!;
         public DbSet<BanTemplate> BanTemplate { get; set; } = null!;
+        public DbSet<IPIntelCache> IPIntelCache { get; set; } = null!;
+
+        // RMC14
+        public DbSet<RMCDiscordAccount> RMCDiscordAccounts { get; set; } = default!;
+        public DbSet<RMCLinkedAccount> RMCLinkedAccounts { get; set; } = default!;
+        public DbSet<RMCPatronTier> RMCPatronTiers { get; set; } = default!;
+        public DbSet<RMCPatron> RMCPatrons { get; set; } = default!;
+        public DbSet<RMCLinkingCodes> RMCLinkingCodes { get; set; } = default!;
+        public DbSet<RMCLinkedAccountLogs> RMCLinkedAccountLogs { get; set; } = default!;
+        public DbSet<RMCPatronLobbyMessage> RMCPatronLobbyMessages { get; set; } = default!;
+        public DbSet<RMCPatronRoundEndMarineShoutout> RMCPatronRoundEndMarineShoutouts { get; set; } = default!;
+        public DbSet<RMCPatronRoundEndXenoShoutout> RMCPatronRoundEndXenoShoutouts { get; set; } = default!;
+        public DbSet<RMCRoleTimerExclude> RMCRoleTimerExcludes { get; set; } = default!;
+        public DbSet<RMCSquadPreference> RMCSquadPreferences { get; set; } = default!;
+        public DbSet<RMCCommendation> RMCCommendations { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -60,6 +75,18 @@ namespace Content.Server.Database
                 .HasIndex(p => new { p.Slot, PrefsId = p.PreferenceId })
                 .IsUnique();
 
+            modelBuilder.Entity<Profile>()
+                .Property(p => p.PlaytimePerks)
+                .HasDefaultValue(true);
+
+            modelBuilder.Entity<Profile>()
+                .Property(p => p.XenoPrefix)
+                .HasDefaultValue(string.Empty);
+
+            modelBuilder.Entity<Profile>()
+                .Property(p => p.XenoPostfix)
+                .HasDefaultValue(string.Empty);
+
             modelBuilder.Entity<Antag>()
                 .HasIndex(p => new { HumanoidProfileId = p.ProfileId, p.AntagName })
                 .IsUnique();
@@ -68,9 +95,26 @@ namespace Content.Server.Database
                 .HasIndex(p => new { HumanoidProfileId = p.ProfileId, p.TraitName })
                 .IsUnique();
 
-            modelBuilder.Entity<Loadout>()
-                .HasIndex(p => new { HumanoidProfileId = p.ProfileId, p.LoadoutName })
-                .IsUnique();
+            // modelBuilder.Entity<Loadout>()
+            //     .HasIndex(p => new { HumanoidProfileId = p.ProfileId, p.LoadoutName })
+            //     .IsUnique();
+            modelBuilder.Entity<ProfileRoleLoadout>()
+                .HasOne(e => e.Profile)
+                .WithMany(e => e.Loadouts)
+                .HasForeignKey(e => e.ProfileId)
+                .IsRequired();
+
+            modelBuilder.Entity<ProfileLoadoutGroup>()
+                .HasOne(e => e.ProfileRoleLoadout)
+                .WithMany(e => e.Groups)
+                .HasForeignKey(e => e.ProfileRoleLoadoutId)
+                .IsRequired();
+
+            modelBuilder.Entity<ProfileLoadout>()
+                .HasOne(e => e.ProfileLoadoutGroup)
+                .WithMany(e => e.Loadouts)
+                .HasForeignKey(e => e.ProfileLoadoutGroupId)
+                .IsRequired();
 
             modelBuilder.Entity<Job>()
                 .HasIndex(j => j.ProfileId);
@@ -360,6 +404,88 @@ namespace Content.Server.Database
                 .OwnsOne(p => p.HWId)
                 .Property(p => p.Type)
                 .HasDefaultValue(HwidType.Legacy);
+
+            // RMC14
+            modelBuilder.Entity<RMCLinkedAccount>()
+                .HasOne(l => l.Player)
+                .WithOne(p => p.LinkedAccount)
+                .HasForeignKey<RMCLinkedAccount>(l => l.PlayerId)
+                .HasPrincipalKey<Player>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCLinkedAccount>()
+                .HasOne(l => l.Discord)
+                .WithOne(d => d.LinkedAccount)
+                .HasForeignKey<RMCLinkedAccount>(l => l.DiscordId)
+                .HasPrincipalKey<RMCDiscordAccount>(d => d.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCPatron>()
+                .HasOne(p => p.Player)
+                .WithOne(p => p.Patron)
+                .HasForeignKey<RMCPatron>(p => p.PlayerId)
+                .HasPrincipalKey<Player>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCPatron>()
+                .HasOne(p => p.Tier)
+                .WithMany(t => t.Patrons)
+                .HasForeignKey(p => p.TierId)
+                .HasPrincipalKey(p => p.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCPatronTier>()
+                .HasIndex(t => t.DiscordRole)
+                .IsUnique();
+
+            modelBuilder.Entity<RMCLinkingCodes>()
+                .HasOne(l => l.Player)
+                .WithOne(p => p.LinkingCodes)
+                .HasForeignKey<RMCLinkingCodes>(l => l.PlayerId)
+                .HasPrincipalKey<Player>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCLinkedAccountLogs>()
+                .HasOne(l => l.Player)
+                .WithMany(p => p.LinkedAccountLogs)
+                .HasForeignKey(l => l.PlayerId)
+                .HasPrincipalKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCLinkedAccountLogs>()
+                .HasOne(l => l.Discord)
+                .WithMany(p => p.LinkedAccountLogs)
+                .HasForeignKey(l => l.DiscordId)
+                .HasPrincipalKey(p => p.Id)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCRoleTimerExclude>()
+                .HasOne(r => r.Player)
+                .WithMany(p => p.RoleTimerExcludes)
+                .HasForeignKey(r => r.PlayerId)
+                .HasPrincipalKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCCommendation>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<RMCCommendation>()
+                .Property(c => c.Id)
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<RMCCommendation>()
+                .HasOne(r => r.Giver)
+                .WithMany(p => p.CommendationsGiven)
+                .HasForeignKey(r => r.GiverId)
+                .HasPrincipalKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RMCCommendation>()
+                .HasOne(r => r.Receiver)
+                .WithMany(p => p.CommendationsReceived)
+                .HasForeignKey(r => r.ReceiverId)
+                .HasPrincipalKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         public virtual IQueryable<AdminLog> SearchLogs(IQueryable<AdminLog> query, string searchText)
@@ -419,12 +545,19 @@ namespace Content.Server.Database
         public List<Job> Jobs { get; } = new();
         public List<Antag> Antags { get; } = new();
         public List<Trait> Traits { get; } = new();
-        public List<Loadout> Loadouts { get; } = new();
+        // public List<Loadout> Loadouts { get; } = new();
+        public List<ProfileRoleLoadout> Loadouts { get; } = new();
 
         [Column("pref_unavailable")] public DbPreferenceUnavailableMode PreferenceUnavailable { get; set; }
 
         public int PreferenceId { get; set; }
         public Preference Preference { get; set; } = null!;
+        public RMCNamedItems? NamedItems { get; set; }
+        public RMCSquadPreference? SquadPreference { get; set; }
+        public string ArmorPreference { get; set; } = null!;
+        public bool PlaytimePerks { get; set; } = true;
+        public string XenoPrefix { get; set; } = string.Empty;
+        public string XenoPostfix { get; set; } = string.Empty;
     }
 
     public class Job
@@ -464,21 +597,100 @@ namespace Content.Server.Database
         public string TraitName { get; set; } = null!;
     }
 
-    [Serializable]
-    public partial class Loadout : Shared.Clothing.Loadouts.Systems.Loadout
+    #region Loadouts
+
+    /// <summary>
+    /// Corresponds to a single role's loadout inside the DB.
+    /// </summary>
+    public class ProfileRoleLoadout
     {
         public int Id { get; set; }
-        public Profile Profile { get; set; } = null!;
+
         public int ProfileId { get; set; }
 
-        public Loadout(
-            string loadoutName,
-            string? customName = null,
-            string? customDescription = null,
-            string? customColorTint = null,
-            bool? customHeirloom = null
-        ) : base(loadoutName, customName, customDescription, customColorTint, customHeirloom) { }
+        public Profile Profile { get; set; } = null!;
+
+        /// <summary>
+        /// The corresponding role prototype on the profile.
+        /// </summary>
+        public string RoleName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Custom name of the role loadout if it supports it.
+        /// </summary>
+        [MaxLength(256)]
+        public string? EntityName { get; set; }
+
+        /// <summary>
+        /// Store the saved loadout groups. These may get validated and removed when loaded at runtime.
+        /// </summary>
+        public List<ProfileLoadoutGroup> Groups { get; set; } = new();
     }
+
+    /// <summary>
+    /// Corresponds to a loadout group prototype with the specified loadouts attached.
+    /// </summary>
+    public class ProfileLoadoutGroup
+    {
+        public int Id { get; set; }
+
+        public int ProfileRoleLoadoutId { get; set; }
+
+        /// <summary>
+        /// The corresponding RoleLoadout that owns this.
+        /// </summary>
+        public ProfileRoleLoadout ProfileRoleLoadout { get; set; } = null!;
+
+        /// <summary>
+        /// The corresponding group prototype.
+        /// </summary>
+        public string GroupName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Selected loadout prototype. Null if none is set.
+        /// May get validated at runtime and updated to to the default.
+        /// </summary>
+        public List<ProfileLoadout> Loadouts { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Corresponds to a selected loadout.
+    /// </summary>
+    public class ProfileLoadout
+    {
+        public int Id { get; set; }
+
+        public int ProfileLoadoutGroupId { get; set; }
+
+        public ProfileLoadoutGroup ProfileLoadoutGroup { get; set; } = null!;
+
+        /// <summary>
+        /// Corresponding loadout prototype.
+        /// </summary>
+        public string LoadoutName { get; set; } = string.Empty;
+
+        /*
+         * Insert extra data here like custom descriptions or colors or whatever.
+         */
+    }
+
+    #endregion
+
+    // [Serializable]
+    // public partial class Loadout : Shared.Clothing.Loadouts.Systems.Loadout
+    // {
+    //     public int Id { get; set; }
+    //     public Profile Profile { get; set; } = null!;
+    //     public int ProfileId { get; set; }
+
+    //     public Loadout(
+    //         string loadoutName,
+    //         string? customName = null,
+    //         string? customDescription = null,
+    //         string? customColorTint = null,
+    //         bool? customHeirloom = null
+    //     ) : base(loadoutName, customName, customDescription, customColorTint, customHeirloom) { }
+    // }
 
     public enum DbPreferenceUnavailableMode
     {
@@ -533,6 +745,15 @@ namespace Content.Server.Database
         public List<ServerRoleBan> AdminServerRoleBansCreated { get; set; } = null!;
         public List<ServerRoleBan> AdminServerRoleBansLastEdited { get; set; } = null!;
         public List<RoleWhitelist> JobWhitelists { get; set; } = null!;
+
+        // RMC14
+        public RMCLinkedAccount? LinkedAccount { get; set; }
+        public RMCPatron? Patron { get; set; }
+        public RMCLinkingCodes? LinkingCodes { get; set; }
+        public List<RMCLinkedAccountLogs> LinkedAccountLogs { get; set; } = default!;
+        public List<RMCRoleTimerExclude> RoleTimerExcludes { get; set; } = default!;
+        public List<RMCCommendation> CommendationsGiven { get; set; } = default!;
+        public List<RMCCommendation> CommendationsReceived { get; set; } = default!;
     }
 
     [Table("whitelist")]
@@ -554,6 +775,16 @@ namespace Content.Server.Database
     {
         [Key] public Guid UserId { get; set; }
         public string? Title { get; set; }
+
+        /// <summary>
+        /// If true, the admin is voluntarily deadminned. They can re-admin at any time.
+        /// </summary>
+        public bool Deadminned { get; set; }
+
+        /// <summary>
+        /// If true, the admin is suspended by an admin with <c>PERMISSIONS</c>. They will not have in-game permissions.
+        /// </summary>
+        public bool Suspended { get; set; }
 
         public int? AdminRankId { get; set; }
         public AdminRank? AdminRank { get; set; }
@@ -601,6 +832,8 @@ namespace Content.Server.Database
 
         [ForeignKey("Server")] public int ServerId { get; set; }
         public Server Server { get; set; } = default!;
+
+        public List<RMCCommendation> Commendations { get; set; } = default!;
     }
 
     public class Server
@@ -914,6 +1147,10 @@ namespace Content.Server.Database
          * Reservation by commenting out the value is likely sufficient for this purpose, but may impact projects which depend on SS14 like SS14.Admin.
          */
         BabyJail = 4,
+        /// Results from rejected connections with external API checking tools
+        IPChecks = 5,
+        /// Results from rejected connections who are authenticated but have no modern hwid associated with them.
+        NoHwid = 6
     }
 
     public class ServerBanHit
@@ -1229,5 +1466,29 @@ namespace Content.Server.Database
 
             return new ImmutableTypedHwid(hwid.Hwid.ToImmutableArray(), hwid.Type);
         }
+    }
+
+
+    /// <summary>
+    ///  Cache for the IPIntel system
+    /// </summary>
+    public class IPIntelCache
+    {
+        public int Id { get; set; }
+
+        /// <summary>
+        /// The IP address (duh). This is made unique manually for psql cause of ef core bug.
+        /// </summary>
+        public IPAddress Address { get; set; } = null!;
+
+        /// <summary>
+        /// Date this record was added. Used to check if our cache is out of date.
+        /// </summary>
+        public DateTime Time { get; set; }
+
+        /// <summary>
+        /// The score IPIntel returned
+        /// </summary>
+        public float Score { get; set; }
     }
 }
