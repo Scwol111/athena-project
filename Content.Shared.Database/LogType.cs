@@ -40,6 +40,7 @@ public enum LogType
     Pickup = 36,
     Drop = 37,
     BulletHit = 38,
+
     ForceFeed = 40, // involuntary
     Ingestion = 53, // voluntary
     MeleeHit = 41,
@@ -119,4 +120,39 @@ public enum LogType
     BecameAntagonist = 228,
     Trait = 229,
     // WD EDIT
+
+    
+    RMCMarineAnnounce = 10000,
+    RMCXenoAnnounce = RMCMarineAnnounce + 1,
+    RMCNamedItem = RMCMarineAnnounce + 2,
+    RMCRequisitionsBuy = RMCMarineAnnounce + 3,
+    RMCEvolve = RMCMarineAnnounce + 4,
+    RMCDevolve = RMCMarineAnnounce + 5,
+    RMCXenoPlantWeeds = RMCMarineAnnounce + 6,
+    RMCXenoConstruct = RMCMarineAnnounce + 7,
+    RMCXenoOrderConstruction = RMCMarineAnnounce + 8,
+    RMCXenoOrderConstructionPlasma = RMCMarineAnnounce + 9,
+    RMCXenoOrderConstructionComplete = RMCMarineAnnounce + 10,
+    RMCPrimaryLZ = RMCMarineAnnounce + 11,
+    RMCDropshipLaunch = RMCMarineAnnounce + 12,
+    RMCStunShake = RMCMarineAnnounce + 13,
+    RMCMortar = RMCMarineAnnounce + 14,
+    RMCTacticalMapUpdated = RMCMarineAnnounce + 15,
+    RMCXenoFruitPlant = RMCMarineAnnounce + 16,
+    RMCCommunicationsTower = RMCMarineAnnounce + 17,
+    RMCSuicide = RMCMarineAnnounce + 18,
+    RMCTackle = RMCMarineAnnounce + 19,
+    RMCHolster = RMCMarineAnnounce + 20,
+    RMCBurrowedLarva = RMCMarineAnnounce + 21,
+    RMCOrbitalBombardment = RMCMarineAnnounce + 22,
+    RMCXenoTunnel = RMCMarineAnnounce + 23,
+    RMCMedal = RMCMarineAnnounce + 24,
+    RMCSquadCreated = RMCMarineAnnounce + 25,
+    RMCFireteam = RMCMarineAnnounce + 26,
+    RMCAlertLevel = RMCMarineAnnounce + 27,
+    RMCSpawnJob = RMCMarineAnnounce + 28,
+    RMCGunShot = RMCMarineAnnounce + 29,
+    RMCSetPose = RMCMarineAnnounce + 30,
+    RMCDropshipWeapon = RMCMarineAnnounce + 31,
+    RMCXenoSpawn = RMCMarineAnnounce + 32,
 }
