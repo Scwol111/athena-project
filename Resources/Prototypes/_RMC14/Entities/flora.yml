@@ -1,5 +1,5 @@
 - type: entity
-  parent: RMCBaseTree
+  parent: BaseTree
   id: RMCBasePalm
   abstract: true
   components:

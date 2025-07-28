@@ -1,5 +1,10 @@
+using System.Linq;
 using System.Numerics;
 using Content.Server.Storage.Components;
+using Content.Shared.Actions;
+using Content.Shared.Cabinet;
+using Content.Shared.Chemistry.Components.SolutionManager;
+using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Decals;
 using Content.Shared.Maps;
 using Content.Shared.Procedural;
@@ -191,43 +196,44 @@ public sealed partial class DungeonSystem
 
             var ent = Spawn(protoId, new EntityCoordinates(gridUid, childPos));
 
-            // WD EDIT START - kill me pls
-            foreach (var comp in EntityManager.GetComponents(ent))
+            // WD EDIT START - kill me pls + BIG KOSTYL
+            var entComponents = EntityManager.GetComponents(ent).ToList();
+            var templateEntComponents = EntityManager.GetComponents(templateEnt).ToList();
+
+            var entMetaData = MetaData(ent);
+            var templateMetaData = MetaData(templateEnt);
+
+            _metaData.SetEntityName(ent, templateMetaData.EntityName, entMetaData);
+            _metaData.SetEntityDescription(ent, templateMetaData.EntityDescription, entMetaData);
+
+            foreach (var comp in entComponents)
             {
-                if (comp is TransformComponent
-                    or ContainerManagerComponent
-                    or MetaDataComponent
-                    or FixturesComponent
-                    or PhysicsComponent
-                    or StorageComponent
-                    or EntityStorageComponent)
+                if (comp is MetaDataComponent or TransformComponent or ContainerManagerComponent)
                     continue;
 
-                RemComp(ent, comp);
-            }
-            foreach (var comp in EntityManager.GetComponents(templateEnt))
-            {
-                switch (comp)
+                if (templateEntComponents.All(p => comp.GetType() != p.GetType()))
                 {
-                    case TransformComponent
-                        or ContainerManagerComponent
-                        or FixturesComponent
-                        or PhysicsComponent
-                        or StorageComponent
-                        or EntityStorageComponent:
-                        continue;
-                    case MetaDataComponent templateMetaData:
-                    {
-                        var copyMetaData = MetaData(ent);
-                        _metaData.SetEntityName(ent, templateMetaData.EntityName, copyMetaData);
-                        _metaData.SetEntityDescription(ent, templateMetaData.EntityDescription, copyMetaData);
-                        continue;
-                    }
+                    RemComp(ent, comp);
                 }
+            }
 
-                var copy = _serializationManager.CreateCopy(comp, notNullableOverride: true);
-                copy.Owner = ent;
-                AddComp(ent, copy, true);
+            foreach (var comp in templateEntComponents)
+            {
+                if (comp is MetaDataComponent or TransformComponent or ContainerManagerComponent)
+                    continue;
+                if (entComponents.Any(p => p.GetType() == comp.GetType()))
+                    continue;
+
+                try
+                {
+                    var copy = _serializationManager.CreateCopy(comp, notNullableOverride: true);
+                    copy.Owner = ent;
+                    AddComp(ent, copy);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to copy component {comp.GetType()} from template entity {templateEnt} to {ent}: {ex}");
+                }
             }
             // WD EDIT END
 
@@ -236,7 +242,7 @@ public sealed partial class DungeonSystem
             _transform.SetLocalRotation(ent, childRot, childXform);
 
             // If the templated entity was anchored then anchor us too.
-            if (anchored && !childXform.Anchored)
+            if (anchored && !childXform.Anchored && !HasComp<RoomFillComponent>(ent)) // WD EDIT
                 _transform.AnchorEntity((ent, childXform), (gridUid, grid));
             else if (!anchored && childXform.Anchored)
                 _transform.Unanchor(ent, childXform);
